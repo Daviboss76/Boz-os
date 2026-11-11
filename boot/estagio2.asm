@@ -664,7 +664,7 @@ gdt_descritor:
         dw gdt_fim - gdt - 1
         dd gdt
 
-msg_titulo:     db "SaguiOS - estagio 2 do carregador", 13, 10, 0
+msg_titulo:     db "Boz_OS - estagio 2 do carregador", 13, 10, 0
 msg_a20:        db "[1/6] A20 ok", 13, 10, 0
 msg_mem:        db "[2/6] memoria ok: ", 0
 msg_mem2:       db " regioes, ", 0

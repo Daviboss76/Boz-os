@@ -526,7 +526,7 @@ static bool executar_linha(char *linha)
 int principal(int argc, char **argv)
 {
     (void)argc; (void)argv;
-    imprimir("sagsh: o shell do SaguiOS (processo %d). Digite ajuda para ver os comandos.\n", meu_pid());
+    imprimir("sagsh: o shell do Boz_OS (processo %d). Digite ajuda para ver os comandos.\n", meu_pid());
     char linha[MAX_LINHA];
     for (;;) {
         recolher_fundo();

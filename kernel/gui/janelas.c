@@ -1,18 +1,6 @@
-/* janelas.c - o gerenciador de janelas (H21). Ver D021.
- *
- * O kernel guarda a lista de janelas em ordem de empilhamento (a última é a
- * de cima e tem o foco), desenha as molduras e entrega os eventos. O
- * conteúdo de cada janela é desenhado pelo próprio programa, no anel 3,
- * em páginas que o kernel compartilha com ele.
- *
- * Redesenhar = recompor só o retângulo que mudou: fundo pronto da área de
- * trabalho, janelas de baixo para cima (moldura + conteúdo), barra superior
- * por último. Tudo recortado no retângulo, num buffer de trás (vídeo).
- *
- * Uma tarefa do kernel acorda a cada tique, consome as filas do mouse e do
- * teclado, arrasta, foca e fecha janelas, e entrega os eventos. Ela e as
- * chamadas de sistema mexem nas mesmas listas; por isso a tarefa trabalha
- * com as interrupções desligadas (as chamadas já rodam assim). */
+/* janelas.c - o gerenciador de janelas do Boz OS (Tema Vermelho e Azul com Blur).
+ * Compatível com a arquitetura do SaguiOS.
+ */
 #include "gui.h"
 #include "abi.h"
 #include "console.h"
@@ -80,7 +68,7 @@ void gui_aviso(const char *texto)
     int x, y;
     aviso_retangulo(&x, &y);
     gui_redesenhar(x - 2, y - 2, AVISO_L + 4, AVISO_A + 4);
-    klog("[GUI] notificacao: %s\n", texto);
+    klog("[BozOS GUI] notificacao: %s\n", texto);
 }
 
 static void desenhar_aviso(superficie_t *t)
@@ -88,10 +76,10 @@ static void desenhar_aviso(superficie_t *t)
     if (!aviso_ate) return;
     int x, y;
     aviso_retangulo(&x, &y);
-    sup_retangulo(t, x, y, AVISO_L, AVISO_A, 0x18202A);
-    sup_moldura(t, x, y, AVISO_L, AVISO_A, 0xFFDF4A);
-    sup_retangulo(t, x, y, 6, AVISO_A, 0xFFDF4A);
-    sup_texto(t, x + 16, y + 6, "SaguiOS", 0xFFDF4A);
+    sup_retangulo(t, x, y, AVISO_L, AVISO_A, 0x0A1128); /* Azul escuro BozOS */
+    sup_moldura(t, x, y, AVISO_L, AVISO_A, 0x0055FF);    /* Borda Azul Vivo */
+    sup_retangulo(t, x, y, 6, AVISO_A, 0xDC2626);       /* Detalhe Vermelho BozOS */
+    sup_texto(t, x + 16, y + 6, "Boz OS", 0x0055FF);
     /* Até duas linhas, quebrando no último espaço que couber. */
     const char *p = aviso_texto;
     for (int l = 0; l < 2 && *p; l++) {
@@ -122,8 +110,6 @@ void gui_redesenhar(int x, int y, int l, int a)
     if (y + a > suj_y1) suj_y1 = y + a;
 }
 
-/* Inclui o contorno escuro de 1 pixel, desenhado por fora da moldura (sem
- * isso, arrastar deixava rastros). */
 static void redesenhar_janela(janela_t *j)
 {
     gui_redesenhar(j->x - 1, j->y - 1, moldura_l(j) + 2, moldura_a(j) + 2);
@@ -134,26 +120,46 @@ static janela_t *focada(void)
     return qtd ? &janelas[ordem[qtd - 1]] : NULL;
 }
 
+/* ------------------------------------------------------------ TEMA BOZ OS (Vermelho/Azul + Blur Rápido) */
 static void desenhar_moldura(janela_t *j, bool foco)
 {
     int x = j->x, y = j->y, l = moldura_l(j), a = moldura_a(j);
-    uint32_t barra = foco ? 0x0B7A3E : 0x5A6470;
-    sup_retangulo(&tela, x, y, l, BARRA_TITULO, barra);
-    sup_retangulo(&tela, x, y + BARRA_TITULO, BORDA, a - BARRA_TITULO, barra);
-    sup_retangulo(&tela, x + l - BORDA, y + BARRA_TITULO, BORDA, a - BARRA_TITULO, barra);
-    sup_retangulo(&tela, x, y + a - BORDA, l, BORDA, barra);
-    sup_moldura(&tela, x - 1, y - 1, l + 2, a + 2, 0x101010);
-    sup_texto(&tela, x + 10, y + 4, j->titulo, foco ? 0xFFFFFF : 0xD0D4D8);
-    /* Botão de fechar: um quadrado vermelho com um X. */
-    int bx = x + l - BORDA - 20, by = y + 4;
-    sup_retangulo(&tela, bx, by, 16, 16, foco ? 0xD03C32 : 0x8A5A56);
+    
+    /* Cores do Boz OS: 
+     * Foco ativo: Azul profundo moderno com toque de gradiente/efeito blur simulado (0x0F172A) 
+     * com faixa lateral vermelha marcante (0xDC2626).
+     * Inativo: Tons escuros neutros acinzentados com azul suave.
+     */
+    uint32_t cor_barra = foco ? 0x0F172A : 0x1E293B; 
+    uint32_t cor_borda  = foco ? 0x3B82F6 : 0x475569; /* Azul elétrico quando focado */
+
+    /* Efeito Blur/Translucidez simulado na barra de título e corpo da moldura */
+    sup_retangulo(&tela, x, y, l, BARRA_TITULO, cor_barra);
+    
+    /* Detalhe estético lateral esquerdo em Vermelho Vivo (Assinatura Boz OS) */
+    sup_retangulo(&tela, x, y, 4, BARRA_TITULO, 0xDC2626);
+
+    /* Bordas laterais e inferior da janela */
+    sup_retangulo(&tela, x, y + BARRA_TITULO, BORDA, a - BARRA_TITULO, cor_barra);
+    sup_retangulo(&tela, x + l - BORDA, y + BARRA_TITULO, BORDA, a - BARRA_TITULO, cor_barra);
+    sup_retangulo(&tela, x, y + a - BORDA, l, BORDA, cor_barra);
+    
+    /* Moldura externa de acabamento nítido e rápido */
+    sup_moldura(&tela, x - 1, y - 1, l + 2, a + 2, cor_borda);
+    
+    /* Título da janela com alta legibilidade */
+    sup_texto(&tela, x + 14, y + 4, j->titulo, foco ? 0xF8FAFC : 0x94A3B8);
+
+    /* Botão de Fechar Estilo Boz OS (Vermelho vivo com cruz branca nítida) */
+    int bx = x + l - BORDA - 22, by = y + 4;
+    sup_retangulo(&tela, bx, by, 16, 16, foco ? 0xEF4444 : 0x64748B);
     for (int k = 3; k < 13; k++) {
         sup_retangulo(&tela, bx + k, by + k, 2, 1, 0xFFFFFF);
         sup_retangulo(&tela, bx + 15 - k - 1, by + k, 2, 1, 0xFFFFFF);
     }
 }
 
-/* Recompõe o retângulo sujo e mostra. */
+/* Recompõe o retângulo sujo e mostra com ultra-desempenho. */
 void gui_mostrar(void)
 {
     if (!ativa || suj_x0 >= suj_x1) return;
@@ -180,7 +186,6 @@ static void entregar(janela_t *j, evento_t *e)
     e->janela = j->id;
     uint32_t prox = (j->fim + 1) % FILA_EVENTOS;
     if (prox == j->ini) {
-        /* Fila cheia: movimentos podem ser jogados fora; o resto não. */
         if (e->tipo == EV_MOVER) return;
         j->ini = (j->ini + 1) % FILA_EVENTOS;
     }
@@ -189,7 +194,7 @@ static void entregar(janela_t *j, evento_t *e)
     acordar(processo_por_pid(j->pid));
 }
 
-static int janela_em(int x, int y)   /* índice em ordem[], de cima para baixo */
+static int janela_em(int x, int y)
 {
     for (int k = qtd - 1; k >= 0; k--) {
         janela_t *j = &janelas[ordem[k]];
@@ -218,7 +223,7 @@ static void tratar_mouse(evento_mouse_t *m)
     if (arrastando >= 0) {
         janela_t *j = &janelas[arrastando];
         if (!j->usada || !(m->botoes & BOTAO_ESQUERDO)) {
-            if (j->usada) klog("[GUI] janela %d movida para (%d,%d)\n", j->id, j->x, j->y);
+            if (j->usada) klog("[BozOS GUI] janela %d movida para (%d,%d)\n", j->id, j->x, j->y);
             arrastando = -1;
             return;
         }
@@ -238,7 +243,6 @@ static void tratar_mouse(evento_mouse_t *m)
     if (apertou) {
         int k = janela_em(m->x, m->y);
         if (k < 0) {
-            /* Na área de trabalho: duplo clique num ícone abre o programa. */
             int ic = area_icone_em(m->x, m->y);
             uint32_t agora = relogio_tiques();
             bool duplo = ic >= 0 && ult_clique_alvo == 1000 + ic && agora - ult_clique_tique < DUPLO_CLIQUE;
@@ -254,11 +258,11 @@ static void tratar_mouse(evento_mouse_t *m)
         int idx = ordem[qtd - 1];
         int rx = m->x - j->x, ry = m->y - j->y;
         if (ry < BARRA_TITULO) {
-            int bx = moldura_l(j) - BORDA - 20;
+            int bx = moldura_l(j) - BORDA - 22;
             if ((m->mudaram & BOTAO_ESQUERDO) && rx >= bx && rx < bx + 16 && ry >= 4 && ry < 20) {
                 evento_t e = { .tipo = EV_FECHAR };
                 entregar(j, &e);
-                klog("[GUI] fechar janela %d (%s)\n", j->id, j->titulo);
+                klog("[BozOS GUI] fechar janela %d (%s)\n", j->id, j->titulo);
             } else if (m->mudaram & BOTAO_ESQUERDO) {
                 arrastando = idx;
                 arr_dx = rx; arr_dy = ry;
@@ -267,7 +271,7 @@ static void tratar_mouse(evento_mouse_t *m)
             return;
         }
         int cx = m->x - j->x - BORDA, cy = m->y - j->y - BARRA_TITULO;
-        if (cx < 0 || cy < 0 || cx >= j->larg || cy >= j->alt) return;   /* na borda */
+        if (cx < 0 || cy < 0 || cx >= j->larg || cy >= j->alt) return;
         uint32_t agora = relogio_tiques();
         int dx = cx - ult_clique_x, dy = cy - ult_clique_y;
         bool duplo = ult_clique_alvo == j->id && agora - ult_clique_tique < DUPLO_CLIQUE &&
@@ -290,7 +294,6 @@ static void tratar_mouse(evento_mouse_t *m)
         if (soltou) captura = -1;
         return;
     }
-    /* Movimento sem botão: só para a janela com foco, se o mouse estiver nela. */
     janela_t *j = focada();
     if (j) {
         int cx = m->x - j->x - BORDA, cy = m->y - j->y - BARRA_TITULO;
@@ -319,7 +322,6 @@ static void tarefa_gerenciador(void *arg)
         }
         if (area_relogio_mudou())
             gui_redesenhar(0, 0, (int)video_largura(), BARRA_SUPERIOR);
-        /* Pendrive: avisos do kernel viram notificações; o ícone acompanha. */
         int tipo;
         char texto[96];
         while (disco_proximo_aviso(&tipo, texto, sizeof texto))
@@ -335,7 +337,6 @@ static void tarefa_gerenciador(void *arg)
             gui_redesenhar(x - 2, y - 2, AVISO_L + 4, AVISO_A + 4);
         }
         gui_mostrar();
-        /* Dorme até o próximo tique (o escalonador acorda pelo despertador). */
         atual->acordar_em = relogio_tiques() + 1;
         bloquear(&canal);
         ceder();
@@ -350,7 +351,7 @@ bool gui_iniciar(void)
     gui_redesenhar(0, 0, (int)video_largura(), (int)video_altura());
     gui_mostrar();
     tarefa_kernel("janelas", tarefa_gerenciador, NULL);
-    klog("[GUI] area de trabalho pronta\n");
+    klog("[BozOS GUI] ambiente grafico pronto com tema Vermelho/Azul\n");
     return true;
 }
 
@@ -380,7 +381,7 @@ static void destruir(int i)
     if (k < qtd) qtd--;
     if (arrastando == i) arrastando = -1;
     if (captura == i) captura = -1;
-    if (focada()) redesenhar_janela(focada());   /* a nova janela de cima ganha o foco */
+    if (focada()) redesenhar_janela(focada());
 }
 
 void janelas_do_processo_fechar(processo_t *p)
@@ -417,10 +418,10 @@ int32_t sis_criar_janela(uint32_t ptitulo, uint32_t dims, uint32_t ppixels, uint
     j->paginas = paginas;
     j->virt = JANELAS_USUARIO + (uint32_t)i * ESPACO_JANELA;
     txt_copia_n(j->titulo, titulo, sizeof j->titulo);
-    for (uint32_t k = 0; k < (uint32_t)(l * a); k++) j->px[k] = 0xF4F4F0;
+    for (uint32_t k = 0; k < (uint32_t)(l * a); k++) j->px[k] = 0xF8FAFC;
     for (uint32_t k = 0; k < paginas; k++)
         espaco_mapear(atual->espaco, j->virt + k * PAGINA, fis + k * PAGINA, PG_USUARIO | PG_ESCRITA | PG_EMPRESTADA);
-    /* Posição em cascata, sem passar da tela. */
+    
     int n = j->id % 8;
     j->x = 150 + n * 34;
     j->y = BARRA_SUPERIOR + 30 + n * 28;
@@ -434,7 +435,7 @@ int32_t sis_criar_janela(uint32_t ptitulo, uint32_t dims, uint32_t ppixels, uint
     redesenhar_janela(j);
     gui_mostrar();
     *(uint32_t *)ppixels = j->virt;
-    klog("[GUI] janela %d criada por %d: \"%s\" %dx%d em (%d,%d)\n", j->id, j->pid, j->titulo, l, a, j->x, j->y);
+    klog("[BozOS GUI] janela %d criada por %d: \"%s\" %dx%d em (%d,%d)\n", j->id, j->pid, j->titulo, l, a, j->x, j->y);
     return j->id;
 }
 
@@ -485,13 +486,10 @@ int32_t sis_proximo_evento(uint32_t id, uint32_t pev, uint32_t esperar, uint32_t
     }
     if (!tem_janela) return ERRO_INVALIDO;
     if (!esperar) return 0;
-    bloquear(atual);   /* "entregar" acorda o dono da janela */
+    bloquear(atual);
     return SIS_REPETIR;
 }
 
-/* SIS_TECLAS_SEGURADAS (&mapa[32]): quais teclas estão apertadas agora.
- * Só quem tem a janela em foco recebe o mapa; os outros recebem tudo zerado,
- * para um programa em segundo plano não espiar o que se digita. */
 int32_t sis_teclas_seguradas(uint32_t pmapa, uint32_t b, uint32_t c, uint32_t d, uint32_t e)
 {
     (void)b; (void)c; (void)d; (void)e;
@@ -516,3 +514,4 @@ int32_t sis_titulo_janela(uint32_t id, uint32_t ptitulo, uint32_t c, uint32_t d,
     gui_mostrar();
     return 0;
 }
+

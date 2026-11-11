@@ -141,6 +141,7 @@ typedef struct {
     unsigned int cpu_ms;
     unsigned int usuario;    /* 1 = programa no anel 3 */
     char         nome[32];
+    int          prioridade; /* <--- Adicione esta linha aqui embaixo */
 } info_processo_t;
 
 typedef struct {

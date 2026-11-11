@@ -1,32 +1,36 @@
-/* sobre-o-sistema - a janela "Sobre o SaguiOS" (H28): versão, tamanho da
- * imagem, processos ativos, memória e créditos. Atualiza a cada segundo. */
+/* sobre-o-sistema - a janela "Sobre o Boz OS": versão, tamanho da
+ * imagem, processos ativos, memória e créditos do fork. Atualiza a cada segundo. */
 #include "sagui.h"
 #include "gui.h"
 
-static const char *const cabeca[16] = {
-    "...........EEEEEEEEEE...........",
-    ".........EEEEEEEEEEEEEE.........",
-    "..BBB...EEEEEBBBBBEEEEEE..BBB...",
-    ".BBBBB.EEEEEEEBBBEEEEEEEEBBBBB..",
-    "BBBBBBBEEEEEEEEBEEEEEEEEEBBBBBB.",
-    "BBBBBBEEERRRRRRRRRRRRRREEEBBBBB.",
-    ".BBBBBEERRPPPRRRRRRPPPRREEBBBBB.",
-    "..BBBBEERRPbPRRRRRRPbPRREEBBBB..",
-    "...BBBEERRPPPRRRRRRPPPRREEBBB...",
-    ".....EEERRRRRRRRRRRRRRRREEE.....",
-    "......EERRRRRRPPPRRRRRRREE......",
-    "......EEERRRRRRRRRRRRRREEE......",
-    ".......EEERRRRPPPPRRRREEE.......",
-    "........EEEERRRRRRRREEEE........",
-    ".........EEEEEEEEEEEEEE.........",
-    "................................",
+/* Mini bandeira da Itália para o topo da janela do Boz OS */
+static const char *const bandeira_topo[16] = {
+    "........PPPPPPPPPPPPPPPP........",
+    "........PXVVFFFFRRXXP...........",
+    "........PXVVFFFFRRXXP...........",
+    "........PXVVFFFFRRXXP...........",
+    "........PXVVFFFFRRXXP...........",
+    "........PXVVFFFFRRXXP...........",
+    "........PXVVFFFFRRXXP...........",
+    "........PXVVFFFFRRXXP...........",
+    "........PXVVFFFFRRXXP...........",
+    "........PXVVFFFFRRXXP...........",
+    "........PXVVFFFFRRXXP...........",
+    "........PXVVFFFFRRXXP...........",
+    "........PXVVFFFFRRXXP...........",
+    "........PXVVFFFFRRXXP...........",
+    "........PXXXXXXXXXXXXXXXX.......",
+    "........PPPPPPPPPPPPPPPP........",
 };
 
 static uint32_t paleta(char c)
 {
     switch (c) {
-    case 'E': return 0x3C2D23; case 'B': return 0xF5F5F0; case 'R': return 0xAA7864;
-    case 'P': return 0x141210; case 'b': return 0xFFFFFF;
+    case 'P': return 0x141210; /* preto */
+    case 'X': return 0xE0E0E0; /* moldura branca */
+    case 'V': return 0x009246; /* verde */
+    case 'F': return 0xF4F5F0; /* branco */
+    case 'R': return 0xCE2B37; /* vermelho */
     default: return 0xFF000000;
     }
 }
@@ -64,18 +68,18 @@ static void informacoes(jan_t *j)
 int principal(int argc, char **argv)
 {
     (void)argc; (void)argv;
-    jan_t *j = jan_abrir("Sobre o SaguiOS", 440, 400);
+    jan_t *j = jan_abrir("Sobre o Boz OS", 440, 400);
     if (!j) return 1;
     g_retangulo(j, 0, 0, 440, 110, 0x0B7A3E);
-    g_desenho(j, 20, 14, cabeca, 32, 16, paleta, 5);
-    g_texto(j, 200, 30, "SaguiOS", 0xFFDF4A);
-    g_texto(j, 200, 52, "um sistema operacional", 0xFFFFFF);
-    g_texto(j, 200, 70, "escrito do zero por IA", 0xFFFFFF);
+    g_desenho(j, 20, 14, bandeira_topo, 32, 16, paleta, 5);
+    g_texto(j, 200, 30, "Boz OS", 0xFFDF4A);
+    g_texto(j, 200, 52, "um fork do SaguiOS", 0xFFFFFF);
+    g_texto(j, 200, 70, "customizado por Davi Boss", 0xFFFFFF);
     g_texto(j, 20, 256, "Créditos", COR_DESTAQUE);
-    g_texto(j, 20, 276, "Escrito por Claude (Anthropic) para o projeto", COR_TEXTO);
-    g_texto(j, 20, 294, "do Eli Rigobeli, sem código de outros sistemas", COR_TEXTO);
-    g_texto(j, 20, 312, "e sem bibliotecas prontas. Fonte, desenhos e o", COR_TEXTO);
-    g_texto(j, 20, 330, "sagui também foram feitos aqui.", COR_TEXTO);
+    g_texto(j, 20, 276, "Boz OS é um sistema derivado (fork)", COR_TEXTO);
+    g_texto(j, 20, 294, "utilizando o kernel e arquitetura original", COR_TEXTO);
+    g_texto(j, 20, 312, "do SaguiOS, com nova identidade visual,", COR_TEXTO);
+    g_texto(j, 20, 330, "temas e adaptações exclusivas.", COR_TEXTO);
     botao_t fechar = { 440 - 110, 360, 90, 26, "Fechar", false };
     botao_desenhar(j, &fechar);
     informacoes(j);
@@ -95,3 +99,4 @@ int principal(int argc, char **argv)
     jan_fechar(j);
     return 0;
 }
+

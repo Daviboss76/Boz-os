@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-mkimagem.py - monta a imagem de disco do SaguiOS (build/saguios.img).
+mkimagem.py - monta a imagem de disco do Boz OS (build/boz-os.img).
 
 Layout (PRD 4.1):
   LBA 0        MBR (estágio 1) + tabela de partições
@@ -37,7 +37,7 @@ def preencher_setores(dados):
 
 
 def simbolos(elf):
-    saida = subprocess.run(["nm", elf], check=True, capture_output=True, text=True).stdout
+    saida = subprocess.run(["i686-linux-gnu-nm", elf], check=True, capture_output=True, text=True).stdout
     tab = {}
     for linha in saida.splitlines():
         partes = linha.split()
@@ -103,10 +103,6 @@ def main():
                       total, entrada, soma(kern), soma(rd))
     cab += a.teste.encode("latin-1")[:63].ljust(64, b"\0")
 
-    # Tamanho do arquivo: arredondado para múltiplo de 32 KB. A partição cobre
-    # do LBA 1 até o fim do arquivo e é a única, marcada como ativa (0x80),
-    # porque algumas BIOS só tratam um pendrive como disco rígido se houver
-    # uma partição ativa válida.
     tam_arquivo = ((total * SETOR) + ALINHAMENTO_ARQUIVO - 1) // ALINHAMENTO_ARQUIVO * ALINHAMENTO_ARQUIVO
     setores_arquivo = setores(max(tam_arquivo, TAMANHO_MINIMO))
     p_inicio, p_qtd = 1, setores_arquivo - 1
@@ -122,7 +118,6 @@ def main():
         f.write(img)
     with open(a.saida.rsplit("/", 1)[0] + "/tamanho.txt", "w") as f:
         f.write(str(util))
-
     print(f"mkimagem: estágio 2 LBA {e2_lba} ({setores(len(e2))} set), kernel LBA {k_lba} "
           f"({len(kern)} B em 0x{KERNEL_ENDERECO:X}, fim BSS 0x{kernel_fim:X}), "
           f"ramdisk LBA {r_lba} ({len(rd)} B em 0x{rd_endereco:X})")
@@ -132,3 +127,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

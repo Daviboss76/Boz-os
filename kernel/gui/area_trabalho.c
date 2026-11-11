@@ -1,9 +1,5 @@
 /* area_trabalho.c - o fundo, o mascote, os ícones e a barra superior (H20, H28).
- *
- * O fundo não muda: é desenhado uma vez numa superfície guardada (degradê
- * verde, amarelo e azul, o sagui no canto e os ícones), e a cada
- * redesenho só a parte necessária é copiada. A barra superior é desenhada
- * por cima, porque o relógio muda. */
+ * Personalizado com tema Azul e Vermelho para o Boz OS. */
 #include "gui.h"
 #include "arte.h"
 #include "console.h"
@@ -43,7 +39,7 @@ static char nome_pendrive[24] = "Pendrive";
 static bool icone_visivel(int i) { return i != ICONE_PENDRIVE || pendrive_visivel; }
 #define ICONE_X 20
 #define ICONE_Y0 (BARRA_SUPERIOR + 16)
-#define ICONE_PASSO 84   /* 8 ícones cabem em 768 linhas */
+#define ICONE_PASSO 88
 #define ICONE_L 96
 #define ICONE_A 88
 
@@ -75,27 +71,34 @@ static void desenhar_fundo(void)
 {
     superficie_t s;
     sup_iniciar(&s, fundo, larg, alt);
-    /* Degradê vertical nas cores do Brasil: verde em cima, amarelo no meio,
-     * azul embaixo, em tons mais suaves que os da bandeira para o texto e os
-     * ícones continuarem legíveis. */
-    const uint32_t verde = 0x0B7A3E, amarelo = 0xE0B92A, azul = 0x14337E;
+    
+    /* Tema de cores: Azul profundo em cima transicionando para Vermelho Vinho embaixo */
+    const uint32_t azul_topo = 0x0A192F;
+    const uint32_t vermelho_baixo = 0x5C061C;
+    
     for (int y = 0; y < alt; y++) {
-        uint32_t c = y < alt / 2 ? mistura(verde, amarelo, y, alt / 2)
-                                 : mistura(amarelo, azul, y - alt / 2, alt - alt / 2);
+        uint32_t c = mistura(azul_topo, vermelho_baixo, y, alt);
         uint32_t *p = fundo + y * larg;
         for (int x = 0; x < larg; x++) p[x] = c;
     }
-    /* O mascote, grande, no canto de baixo à direita. */
+    
+    /* O mascote no canto de baixo à direita com assinatura Boz OS */
     int esc = larg >= 1000 ? 5 : 3;
     int mx = larg - 32 * esc - 30, my = alt - 32 * esc - 40;
     sup_desenho(&s, mx, my, &arte_sagui, esc);
-    texto_com_sombra(&s, mx + 16 * esc - texto_largura("SaguiOS") / 2, my + 32 * esc + 6, "SaguiOS", 0xFFFFFF);
-    /* Ícones na coluna da esquerda, com o nome embaixo. */
+    texto_com_sombra(&s, mx + 16 * esc - texto_largura("Boz OS") / 2, my + 32 * esc + 6, "Boz OS", 0xFFFFFF);
+    
+    /* Ícones na coluna da esquerda com painéis de fundo limpos e modernos */
     for (int i = 0; i < QTD_ICONES; i++) {
         if (!icone_visivel(i)) continue;
         int x, y, l, a;
         area_icone_retangulo(i, &x, &y, &l, &a);
-        sup_desenho(&s, x + (l - 64) / 2, y, icones[i].desenho, 2);
+        
+        /* Painel translúcido/sutil de fundo para destacar o ícone */
+        sup_retangulo(&s, x + 2, y, l - 4, a - 16, 0x18ffffff);
+        sup_retangulo(&s, x, y + 2, l, a - 20, 0x18ffffff);
+        
+        sup_desenho(&s, x + (l - 64) / 2, y + 4, icones[i].desenho, 2);
         const char *nome = i == ICONE_PENDRIVE ? nome_pendrive : icones[i].nome;
         texto_com_sombra(&s, x + (l - texto_largura(nome)) / 2, y + 68, nome, 0xFFFFFF);
     }
@@ -126,13 +129,14 @@ bool area_relogio_mudou(void)
 void area_barra(superficie_t *s)
 {
     static const char *semana[] = { "dom", "seg", "ter", "qua", "qui", "sex", "sáb" };
-    sup_retangulo(s, 0, 0, larg, BARRA_SUPERIOR, 0x18202A);
-    sup_retangulo(s, 0, BARRA_SUPERIOR - 1, larg, 1, 0x0B7A3E);
-    /* Cabecinha do sagui (as linhas 2 a 17 do ícone "sobre") e o nome. */
+    sup_retangulo(s, 0, 0, larg, BARRA_SUPERIOR, 0x0F111A);
+    sup_retangulo(s, 0, BARRA_SUPERIOR - 1, larg, 1, 0xD93838);
+    
     desenho_t cabeca = { arte_icone_sobre.linhas + 2, 32, 16 };
     sup_desenho(s, 6, 4, &cabeca, 1);
-    sup_texto(s, 44, 4, "SaguiOS", 0xFFDF4A);
-    sup_texto(s, 112, 4, "um sistema operacional escrito do zero por IA", 0x9AA8B8);
+    sup_texto(s, 44, 4, "Boz OS", 0xFF5555);
+    sup_texto(s, 112, 4, "ambiente customizado", 0xA0A0A0);
+    
     data_hora_t d;
     cmos_ler_data(&d);
     minuto_mostrado = d.minuto;
@@ -154,7 +158,6 @@ int area_icone_em(int x, int y)
     return -1;
 }
 
-/* Mostra ou esconde o ícone do pendrive (H34). Devolve true se mudou. */
 bool area_pendrive(bool presente, const char *rotulo)
 {
     char nome[24];
@@ -175,7 +178,6 @@ static disco_t *primeiro_disco(void)
     return NULL;
 }
 
-/* Botão direito num ícone: no pendrive, "remover com segurança". */
 void area_icone_direito(int i)
 {
     if (i != ICONE_PENDRIVE) return;
@@ -184,7 +186,6 @@ void area_icone_direito(int i)
     else gui_aviso("O pendrive não está montado: pode remover.");
 }
 
-/* Abre o programa do ícone (H28). Ele não tem pai: ninguém espera por ele. */
 void area_icone_abrir(int i)
 {
     if (i < 0 || i >= QTD_ICONES) return;
@@ -203,3 +204,4 @@ void area_icone_abrir(int i)
     int pid = processo_executar(icones[i].programa, 1, argv, NULL);
     klog("[GUI] icone %s -> %s (pid %d)\n", icones[i].nome, icones[i].programa, pid);
 }
+

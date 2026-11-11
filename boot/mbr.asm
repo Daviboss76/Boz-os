@@ -134,7 +134,7 @@ dap_qtd:        dw 0
 dap_destino:    dw 0, 0                 ; offset, segmento
 dap_lba:        dd 0, 0
 
-msg_carregando: db "SaguiOS: carregando...", 13, 10, 0
+msg_carregando: db "Boz: carregando...", 13, 10, 0
 msg_sem_lba:    db "Erro: BIOS sem INT13 LBA", 0
 msg_cabecalho:  db "Erro: cabecalho invalido", 0
 msg_leitura:    db "Erro de leitura", 0

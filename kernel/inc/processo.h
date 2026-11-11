@@ -32,6 +32,7 @@ typedef struct processo {
     char        pasta[CAMINHO_MAX];
     uint32_t    dados_inicio, dados_fim;   /* área que cresce com aumentar_memoria */
     uint32_t    tiques_cpu;
+    int         prioridade;       /* <-- Adicionado para o escalonador por prioridade */
 } processo_t;
 
 extern processo_t *atual;
@@ -41,6 +42,7 @@ processo_t *processo_novo(const char *nome, int pai);
 processo_t *tarefa_kernel(const char *nome, void (*funcao)(void *), void *arg);
 processo_t *processo_por_pid(int pid);
 processo_t *processo_indice(int i);
+uint32_t    processo_obter_uso_cpu(int pid); /* <-- Adicionado para as estatísticas */
 
 quadro_t *escalonador_tique(quadro_t *q);     /* chamado pelo relógio */
 quadro_t *escalonar(quadro_t *q);             /* passa a vez agora */
@@ -58,3 +60,4 @@ int       processo_executar(const char *caminho, int argc, char *const argv[], p
 #define DADOS_LIMITE        (USUARIO_FIM - PILHA_USUARIO_TAM - 4096u)
 
 #endif
+
